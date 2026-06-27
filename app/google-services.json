@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1079472315078",
+    "project_id": "cost-calculator-74860",
+    "storage_bucket": "cost-calculator-74860.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1079472315078:android:fbdffa181e2ae80abc15c7",
+        "android_client_info": {
+          "package_name": "com.aistudio.menumanager.xwdkpl"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1079472315078-qig7c72ergcjkagej1i1l8nlk2gos51m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZJQ7XbK8vPjQkAJ7Bpv3AMrRb6oVtrYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1079472315078-qig7c72ergcjkagej1i1l8nlk2gos51m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

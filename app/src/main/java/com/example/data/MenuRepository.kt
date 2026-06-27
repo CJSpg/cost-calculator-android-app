@@ -247,16 +247,71 @@ class MenuRepository(
         }
     }
 
+    private fun documentToMenuItem(doc: com.google.firebase.firestore.DocumentSnapshot): MenuItem? {
+        try {
+            val id = doc.id
+            val name = doc.getString("name") ?: return null
+            
+            val packPriceVal = doc.get("packPrice")
+            val packPrice = when (packPriceVal) {
+                is Number -> packPriceVal.toDouble()
+                else -> 0.0
+            }
+            
+            val packSizeVal = doc.get("packSize")
+            val packSize = when (packSizeVal) {
+                is Number -> packSizeVal.toInt()
+                else -> 0
+            }
+            
+            val packageUnit = doc.getString("packageUnit") ?: ""
+            val unit = doc.getString("unit") ?: ""
+            
+            val createdAtVal = doc.get("createdAt")
+            val createdAt = when (createdAtVal) {
+                is com.google.firebase.Timestamp -> createdAtVal.toDate().time
+                is java.util.Date -> createdAtVal.time
+                is Number -> createdAtVal.toLong()
+                else -> System.currentTimeMillis()
+            }
+            
+            val lastModifiedAtVal = doc.get("lastModifiedAt")
+            val lastModifiedAt = when (lastModifiedAtVal) {
+                is Number -> lastModifiedAtVal.toLong()
+                else -> createdAt
+            }
+            
+            val updatedByDeviceId = doc.getString("updatedByDeviceId") ?: ""
+            
+            return MenuItem(
+                id = id,
+                createdAt = createdAt,
+                name = name,
+                packPrice = packPrice,
+                packSize = packSize,
+                packageUnit = packageUnit,
+                unit = unit,
+                syncStatus = SyncStatus.SYNCED,
+                lastModifiedAt = lastModifiedAt,
+                lastSyncedAt = System.currentTimeMillis(),
+                updatedByDeviceId = updatedByDeviceId
+            )
+        } catch (e: Exception) {
+            Log.e("MenuRepository", "Error parsing MenuItem document ${doc.id}", e)
+            return null
+        }
+    }
+
     private suspend fun syncMenuItems() {
         // Upload pending
         val pendingItems = menuItemDao.getPendingMenuItems()
         for (item in pendingItems) {
             try {
                 if (item.syncStatus == SyncStatus.PENDING_DELETE) {
-                    db.collection("menuItems").document(item.id).delete().await()
+                    db.collection("products").document(item.id).delete().await()
                     menuItemDao.deleteMenuItemDirectly(item.id)
                 } else {
-                    db.collection("menuItems").document(item.id).set(item.copy(syncStatus = SyncStatus.SYNCED)).await()
+                    db.collection("products").document(item.id).set(item.copy(syncStatus = SyncStatus.SYNCED)).await()
                     menuItemDao.insertMenuItem(item.copy(syncStatus = SyncStatus.SYNCED, lastSyncedAt = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
@@ -266,8 +321,8 @@ class MenuRepository(
 
         // Download updates from Firestore
         try {
-            val snapshot = db.collection("menuItems").get().await()
-            val firestoreItems = snapshot.documents.mapNotNull { it.toObject(MenuItem::class.java) }
+            val snapshot = db.collection("products").get().await()
+            val firestoreItems = snapshot.documents.mapNotNull { documentToMenuItem(it) }
             for (fItem in firestoreItems) {
                 val localItem = menuItemDao.getMenuItemById(fItem.id)
                 if (localItem == null || fItem.lastModifiedAt > localItem.lastModifiedAt) {
