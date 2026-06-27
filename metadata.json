@@ -1,0 +1,6 @@
+{
+  "name": "45天客製化菜單管理",
+  "description": "專業 45 天菜單管理與客製化工具，提供離線快取、Firebase 雲端同步、PDF 匯出與時間提醒功能。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

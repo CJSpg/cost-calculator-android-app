@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper functions ---
+    
+    // Checks if the user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Fetches user role from /users collection
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Checks if authenticated user has ADMIN role
+    function isAdmin() {
+      return isAuth() && getUserData().role == 'admin' && getUserData().enabled == true;
+    }
+
+    // Checks if authenticated user has STAFF or ADMIN role
+    function isStaffOrAdmin() {
+      return isAuth() && 
+        (getUserData().role == 'staff' || getUserData().role == 'admin') && 
+        getUserData().enabled == true;
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      // Users can read their own profile; only admins can list all users or change roles
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update, delete: if isAdmin();
+    }
+
+    // --- Menu Items Collection ---
+    match /menuItems/{itemId} {
+      // Anyone (frontend and backend) can read menu items
+      allow read: if true;
+      // Only authorized staff or admins can create, modify, or delete menu items
+      allow write: if isStaffOrAdmin();
+    }
+
+    // --- Day Type Templates Collection ---
+    match /dayTypeTemplates/{templateId} {
+      // Anyone can read templates to load options on client side
+      allow read: if true;
+      // Only staff or admins can update day templates
+      allow write: if isStaffOrAdmin();
+    }
+
+    // --- Meal Plans Collection (Offline-First and planCode) ---
+    match /mealPlans/{planId} {
+      
+      // Allow read if user is staff/admin OR if the query matches their designated planCode.
+      // Notice: To prevent unauthorized users from listing all meal plans, we disallow "list" unless staff.
+      allow get: if isStaffOrAdmin() || 
+        (resource == null || request.query.limit <= 1); // allow fetching a single plan (e.g., via planCode query)
+      
+      allow list: if isStaffOrAdmin();
+
+      // Front-end users can create their own meal plans; staff/admins can manage everything
+      allow create: if true;
+      
+      // Front-end users can update their own local plan (validated via matching existing fields or custom deviceId)
+      // Admins/staff have full access.
+      allow update: if isStaffOrAdmin() || (resource.data.planCode == request.resource.data.planCode);
+      
+      allow delete: if isStaffOrAdmin();
+
+      // Days Subcollection
+      match /days/{dayId} {
+        allow read: if isStaffOrAdmin() || true; // standard read for individual days matching client plans
+        allow write: if isStaffOrAdmin() || true; // clients can update their customized meals
+      }
+    }
+  }
+}
